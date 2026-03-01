@@ -1,90 +1,112 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>REALM Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      margin:0;
-      font-family:Arial;
+      margin: 0;
+      font-family: Arial, sans-serif;
       background: linear-gradient(145deg, #0b1f3a, #102a52);
-      color:white;
-      min-height:100vh;
-      padding:20px;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
     }
 
     header {
-      background:#08172b;
-      padding:15px;
-      text-align:center;
-      font-size:22px;
-      font-weight:bold;
-    }
-
-    .container{
-      display:flex;
-      flex-direction:column;
-      gap:15px;
-      margin-top:20px;
+      background: #08172b;
+      padding: 15px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 20px;
     }
 
     .card {
-      background:#132f57;
-      padding:20px;
-      border-radius:10px;
-      cursor:pointer;
-      transition:0.3s;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+      background: #132f57;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: 0.3s;
     }
 
-    .card:hover { background:#1a3c6e; }
+    .card:hover { background: #1a3c6e; }
 
-    .icon-text {
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:bold;
+    .card span { font-weight: bold; }
+
+    .icon { font-size: 20px; margin-right: 10px; }
+
+    .logout-btn {
+      margin-top: auto;
+      padding: 12px;
+      text-align: center;
+      background: #ff4d4d;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
     }
 
-    .icon-text img {
-      width:24px;
-      height:24px;
-    }
+    .logout-btn:hover { background: #e60000; }
   </style>
 </head>
+
 <body>
 
 <header>REALM Dashboard</header>
 
-<div class="container">
-
-  <div class="card" onclick="location.href='profile.html'">
-    <span class="icon-text">
-      <img src="https://img.icons8.com/ios-glyphs/30/user--v1.png"/> Profile
-    </span>
-  </div>
-
-  <div class="card" onclick="location.href='friends.html'">
-    <span class="icon-text">
-      <img src="https://img.icons8.com/ios-glyphs/30/add-user-male.png"/> Add Friends
-    </span>
-  </div>
-
-  <div class="card" onclick="location.href='friends.html'">
-    <span class="icon-text">
-      <img src="https://img.icons8.com/ios-glyphs/30/handshake.png"/> Friend Requests
-    </span>
-  </div>
-
-  <div class="card" onclick="location.href='chat.html'">
-    <span class="icon-text">
-      <img src="https://img.icons8.com/ios-glyphs/30/chat--v1.png"/> Chat
-    </span>
-  </div>
-
+<div class="card" onclick="window.location.href='addFriends.html'">
+  <span>➕ Add Friends</span>
 </div>
+
+<div class="card" onclick="window.location.href='friendRequests.html'">
+  <span>📨 Friend Requests</span>
+</div>
+
+<div class="card" onclick="window.location.href='chat.html'">
+  <span>💬 Chat</span>
+</div>
+
+<div class="logout-btn" onclick="logout()">🚪 Logout</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
+  authDomain: "realm-5de9c.firebaseapp.com",
+  projectId: "realm-5de9c",
+  storageBucket: "realm-5de9c.appspot.com",
+  messagingSenderId: "272718937770",
+  appId: "1:272718937770:web:0293fd45bdf6e9aca05ad3"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Redirect to login if not logged in
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+  }
+});
+
+// Logout function
+function logout() {
+  signOut(auth)
+    .then(() => { window.location.href = "index.html"; })
+    .catch((error) => { alert("Error logging out: " + error.message); });
+}
+</script>
 
 </body>
 </html>
