@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
-  <head>
-	<title>Profile - REALM</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
+<head>
+  <title>Profile - REALM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
     body {
       margin:0;
       font-family:Arial;
@@ -38,25 +38,25 @@
       color:white;
       cursor:pointer;
     }
-</style>
-  </head>
-  <body>
+  </style>
+</head>
+<body>
 
-	<div class="container">
-	  <h2 style="text-align:center;">My Profile</h2>
+<div class="container">
+  <h2 style="text-align:center;">My Profile</h2>
 
-	  <input type="number" id="age" placeholder="Age (Private)">
-	  <input type="text" id="state" placeholder="State">
-	  <textarea id="bio" placeholder="Bio"></textarea>
+  <input type="number" id="age" placeholder="Age (Private)">
+  <input type="text" id="state" placeholder="State">
+  <textarea id="bio" placeholder="Bio"></textarea>
 
-	  <button onclick="saveProfile()">Save Profile</button>
-	  <button onclick="goBack()" style="background:gray;">Back</button>
-	</div>
+  <button onclick="saveProfile()">Save Profile</button>
+  <button onclick="goBack()" style="background:gray;">Back</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
@@ -94,20 +94,22 @@ async function loadProfile(){
 }
 
 window.saveProfile = async function(){
-  const age = document.getElementById("age").value;
-  const state = document.getElementById("state").value;
-  const bio = document.getElementById("bio").value;
+  try {
+    const age = document.getElementById("age").value;
+    const state = document.getElementById("state").value;
+    const bio = document.getElementById("bio").value;
 
-  const docRef = doc(db,"users",currentUser.uid);
+    await setDoc(doc(db,"users",currentUser.uid),{
+      age: age ? Number(age) : null,
+      state: state,
+      bio: bio
+    }, { merge: true });
 
-  await updateDoc(docRef,{
-    age: age ? Number(age) : null,
-    state,
-    bio
-  });
-
-  alert("Profile Updated!");
-  loadProfile();
+    alert("Profile Updated!");
+  } catch(error){
+    alert(error.message);
+    console.log(error);
+  }
 }
 
 window.goBack = function(){
@@ -115,5 +117,5 @@ window.goBack = function(){
 }
 </script>
 
-  </body>
-</html> 
+</body>
+</html>
