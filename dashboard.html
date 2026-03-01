@@ -11,6 +11,8 @@
       color:white;
       min-height:100vh;
       padding:20px;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
@@ -52,6 +54,20 @@
       width:24px;
       height:24px;
     }
+
+    /* Logout button styling */
+    .logout-btn {
+      margin-top: 20px;
+      padding: 12px;
+      text-align: center;
+      background: #ff4d4d;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover { background: #e60000; }
   </style>
 </head>
 <body>
@@ -85,6 +101,43 @@
   </div>
 
 </div>
+
+<!-- Logout button -->
+<div class="logout-btn" id="logoutBtn">🚪 Logout</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+  import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
+    authDomain: "realm-5de9c.firebaseapp.com",
+    projectId: "realm-5de9c",
+    storageBucket: "realm-5de9c.appspot.com",
+    messagingSenderId: "272718937770",
+    appId: "1:272718937770:web:0293fd45bdf6e9aca05ad3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // Optional: redirect if not logged in
+  onAuthStateChanged(auth, user => {
+    if(!user) {
+      window.location.href = "index.html";
+    }
+  });
+
+  // Logout functionality
+  const logoutBtn = document.getElementById("logoutBtn");
+  logoutBtn.addEventListener("click", () => {
+    signOut(auth)
+      .then(() => {
+        window.location.href = "index.html"; // go back to login
+      })
+      .catch(err => alert("Error logging out: " + err.message));
+  });
+</script>
 
 </body>
 </html>
