@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
-  <head>
-	<title>REALM Chat</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
+<head>
+  <title>REALM Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
     body { margin:0; font-family:Arial,sans-serif; background:#0b1f3a; color:white; display:flex; flex-direction:column; height:100vh; }
     header { background:#08172b; padding:15px; text-align:center; font-weight:bold; }
     .friend-list { background:#132f57; padding:10px; display:flex; gap:10px; overflow-x:auto; }
@@ -18,24 +18,25 @@
     button.send-btn { margin-left:10px; padding:10px 15px; border:none; border-radius:20px; background:#1e90ff; color:white; cursor:pointer; }
     button.send-btn:hover { background:#187bcd; }
     .back { display:block; text-align:center; padding:10px; background:#132f57; text-decoration:none; color:white; }
-</style>
-  </head>
-  <body>
+  </style>
+</head>
+<body>
 
-	<header>REALM Chat</header>
-	<div class="friend-list" id="friendList">Loading friends...</div>
-	<div id="messages"></div>
-	<div class="input-area">
-	  <input type="text" id="messageInput" placeholder="Type a message...">
-	  <button class="send-btn" onclick="sendMessage()">Send</button>
-	</div>
-	<a href="dashboard.html" class="back">⬅ Back to Dashboard</a>
+<header>REALM Chat</header>
+<div class="friend-list" id="friendList">Loading friends...</div>
+<div id="messages"></div>
+<div class="input-area">
+  <input type="text" id="messageInput" placeholder="Type a message...">
+  <button class="send-btn" onclick="sendMessage()">Send</button>
+</div>
+<a href="dashboard.html" class="back">⬅ Back to Dashboard</a>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
 import { getFirestore, collection, getDocs, query, where, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
+// 🔑 Replace these with your own Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
   authDomain: "realm-5de9c.firebaseapp.com",
@@ -64,6 +65,7 @@ onAuthStateChanged(auth, async (user) => {
   loadFriends();
 });
 
+// Load only friends (status="accepted")
 async function loadFriends(){
   const connSnap = await getDocs(collection(db,"connections"));
   const usersSnap = await getDocs(collection(db,"users"));
@@ -71,13 +73,9 @@ async function loadFriends(){
   const friends = [];
   connSnap.forEach(docSnap=>{
     const data = docSnap.data();
-    if(data.status==="accepted" && data.users && data.users.includes(currentUid)){
-      data.users.forEach(u=>{
-        if(u!==currentUid) friends.push(u);
-      });
-    } else if(data.status==="accepted" && ((data.from===currentUid) || (data.to===currentUid))){
-      const friendUid = data.from===currentUid ? data.to : data.from;
-      friends.push(friendUid);
+    if(data.status==="accepted"){
+      if(data.from===currentUid) friends.push(data.to);
+      if(data.to===currentUid) friends.push(data.from);
     }
   });
 
@@ -149,5 +147,5 @@ async function sendMessage(){
 }
 </script>
 
-  </body>
+</body>
 </html>
