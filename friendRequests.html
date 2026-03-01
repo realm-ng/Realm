@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<meta charset="UTF-8">
+	<title>Friend Requests</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b1f3a;
+      color: white;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    header {
+      background: #08172b;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .request-card {
+      background: #132f57;
+      padding: 15px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .accept {
+      background: #1e90ff;
+      color: white;
+      margin-right: 5px;
+    }
+
+    .decline {
+      background: #ff4d4d;
+      color: white;
+    }
+
+    .back {
+      display: block;
+      text-align: center;
+      padding: 10px;
+      background: #132f57;
+      text-decoration: none;
+      color: white;
+      margin-top: 20px;
+    }
+</style>
+  </head>
+  <body>
+
+	<header>Friend Requests</header>
+
+	<div id="requestsContainer">Loading friend requests...</div>
+
+	<a href="dashboard.html" class="back">⬅ Back to Dashboard</a>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+
+// Replace with your Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
+  authDomain: "realm-5de9c.firebaseapp.com",
+  projectId: "realm-5de9c",
+  storageBucket: "realm-5de9c.appspot.com",
+  messagingSenderId: "272718937770",
+  appId: "1:272718937770:web:0293fd45bdf6e9aca05ad3"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUid = null;
+const requestsContainer = document.getElementById("requestsContainer");
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+  currentUid = user.uid;
+  loadRequests();
+});
+
+async function loadRequests() {
+  const connectionsRef = collection(db, "connections");
+  const q = query(connectionsRef, where("to", "==", currentUid));
+  const snapshot = await getDocs(q);
+
+  requestsContainer.innerHTML = "";
+
+  if (snapshot.empty) {
+    requestsContainer.innerHTML = "<p>No friend requests</p>";
+    return;
+  }
+
+  const usersSnap = await getDocs(collection(db, "users"));
+
+  snapshot.forEach(docSnap => {
+    const request = docSnap.data();
+    if (request.status !== "pending") return;
+
+    let senderName = "Unknown";
+    usersSnap.forEach(userDoc => {
+      if (userDoc.id === request.from) senderName = userDoc.data().username;
+    });
+
+    const card = document.createElement("div");
+    card.classList.add("request-card");
+
+    card.innerHTML = `
+      <span>${senderName}</span>
+      <div>
+        <button class="accept">Accept</button>
+        <button class="decline">Decline</button>
+      </div>
+    `;
+
+    // Accept friend
+    card.querySelector(".accept").onclick = async () => {
+      await updateDoc(doc(db, "connections", docSnap.id), { status: "accepted" });
+      card.remove();
+    };
+
+    // Decline friend
+    card.querySelector(".decline").onclick = async () => {
+      await updateDoc(doc(db, "connections", docSnap.id), { status: "declined" });
+      card.remove();
+    };
+
+    requestsContainer.appendChild(card);
+  });
+}
+</script>
+
+  </body>
+</html>
