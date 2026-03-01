@@ -1,40 +1,68 @@
 <!DOCTYPE html>
 <html>
-  <head>
-	<title>Login - REALM</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-    body { margin:0; font-family:Arial,sans-serif; background:#0b1f3a; display:flex; justify-content:center; align-items:center; height:100vh; color:white; }
-    .login-box { background:#08172b; padding:30px; border-radius:15px; width:300px; }
-    h2 { text-align:center; margin-bottom:20px; }
-    input { width:100%; padding:10px; margin:5px 0; border-radius:10px; border:none; outline:none; }
-    button { width:100%; padding:10px; margin-top:10px; border:none; border-radius:10px; background:#1e90ff; color:white; cursor:pointer; }
+<head>
+  <title>REALM Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin:0;
+      font-family:Arial;
+      background:#0b1f3a;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      color:white;
+    }
+    .box {
+      background:#08172b;
+      padding:30px;
+      border-radius:15px;
+      width:300px;
+    }
+    input {
+      width:100%;
+      padding:10px;
+      margin:5px 0;
+      border-radius:10px;
+      border:none;
+    }
+    button {
+      width:100%;
+      padding:10px;
+      margin-top:10px;
+      border:none;
+      border-radius:10px;
+      background:#1e90ff;
+      color:white;
+      cursor:pointer;
+    }
     button:hover { background:#187bcd; }
-</style>
-  </head>
-  <body>
+  </style>
+</head>
+<body>
 
-	<div class="login-box">
-	  <h2>Login</h2>
-	  <input type="email" id="email" placeholder="Gmail">
-	  <input type="password" id="password" placeholder="Password">
-	  <button onclick="login()">Login</button>
-	  <p style="text-align:center; margin-top:10px;">
-		Don't have an account? <a href="signup.html">Sign Up</a>
-	  </p>
-	</div>
+<div class="box">
+  <h2>Login</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p style="text-align:center;margin-top:10px;">
+    No account? <a href="signup.html" style="color:#1e90ff;">Sign Up</a>
+  </p>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MSG_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
+  authDomain: "realm-5de9c.firebaseapp.com",
+  projectId: "realm-5de9c",
+  storageBucket: "realm-5de9c.firebasestorage.app",
+  messagingSenderId: "272718937770",
+  appId: "1:272718937770:web:0293fd45bdf6e9aca05ad3"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -44,20 +72,18 @@ onAuthStateChanged(auth, user => {
   if(user) window.location.href = "dashboard.html";
 });
 
-async function login() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
-
-  if(!email || !password) return alert("Please enter email and password");
+window.login = async function(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
     window.location.href = "dashboard.html";
-  } catch(err) {
-    alert(err.message);
+  } catch(error){
+    alert(error.message);
   }
 }
 </script>
 
-  </body>
+</body>
 </html>
