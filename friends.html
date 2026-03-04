@@ -1,88 +1,97 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>REALM Friends</title>
+  <title>REALM - Friends</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
+    body{
       margin:0;
       font-family:Arial;
-      background:#0b1f3a;
+      background: linear-gradient(145deg,#0b1f3a,#102a52);
       color:white;
-      min-height:100vh;
       padding:20px;
     }
 
-    header {
-      background:#08172b;
-      padding:15px;
-      text-align:center;
-      font-size:22px;
-      font-weight:bold;
-      margin-bottom: 15px;
+    h2{
+      margin-top:30px;
     }
 
-    h2 {
-      margin-top:20px;
-      margin-bottom:10px;
-      font-size:18px;
-      border-bottom:1px solid #1a3c6e;
-      padding-bottom:5px;
-    }
-
-    .user-card, .request-card {
+    input{
+      width:100%;
       padding:10px;
-      background:#132f57;
-      margin-bottom:5px;
       border-radius:8px;
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      cursor:pointer;
-      transition:0.2s;
+      border:none;
+      margin-bottom:15px;
+      font-size:16px;
     }
 
-    .user-card:hover, .request-card:hover { background:#1a3c6e; }
+    .user-card, .request-card{
+      background:#132f57;
+      padding:15px;
+      border-radius:10px;
+      margin-bottom:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
 
-    button {
-      padding:5px 10px;
+    button{
+      padding:6px 12px;
       border:none;
-      border-radius:8px;
+      border-radius:6px;
       cursor:pointer;
       font-weight:bold;
+    }
+
+    .add-btn{
+      background:#28a745;
+      color:white;
+    }
+
+    .accept-btn{
+      background:#28a745;
+      color:white;
       margin-left:5px;
     }
 
-    .add-btn { background:#1e90ff; color:white; }
-    .accept-btn { background:#28a745; color:white; }
-    .decline-btn { background:#ff4d4d; color:white; }
+    .decline-btn{
+      background:#dc3545;
+      color:white;
+      margin-left:5px;
+    }
 
-    .back { display:block; text-align:center; padding:10px; background:#132f57; text-decoration:none; color:white; margin-top:20px; border-radius:8px; }
+    .back-btn{
+      margin-top:20px;
+      background:#999;
+      color:black;
+    }
   </style>
 </head>
 <body>
 
-<header>REALM Friends</header>
+<h1>Friends</h1>
 
-<h2>All Users</h2>
-<div id="usersList">Loading users...</div>
+<input type="text" id="searchInput" placeholder="Search users by username..." oninput="searchUsers()">
+<div id="searchResults"></div>
 
 <h2>Friend Requests</h2>
-<div id="friendRequests">Loading friend requests...</div>
+<div id="friendRequests"></div>
 
-<a href="dashboard.html" class="back">⬅ Back to Dashboard</a>
+<button class="back-btn" onclick="location.href='dashboard.html'">Back</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, addDoc, query, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+import { 
+  getFirestore, collection, getDocs, query, where,
+  addDoc, updateDoc, doc 
+} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
   authDomain: "realm-5de9c.firebaseapp.com",
   projectId: "realm-5de9c",
-  storageBucket: "realm-5de9c.appspot.com",
+  storageBucket: "realm-5de9c.firebasestorage.app",
   messagingSenderId: "272718937770",
   appId: "1:272718937770:web:0293fd45bdf6e9aca05ad3"
 };
@@ -91,79 +100,131 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUid = null;
+let currentUid;
 
-onAuthStateChanged(auth, user => {
-  if(!user) { window.location.href = "index.html"; return; }
-  currentUid = user.uid;
-  loadUsers();
-  loadFriendRequests();
+auth.onAuthStateChanged(user=>{
+  if(user){
+    currentUid = user.uid;
+    loadFriendRequests();
+  }else{
+    location.href="index.html";
+  }
 });
 
-// Load all users (to add as friends)
-async function loadUsers(){
-  const usersSnap = await getDocs(collection(db, "users"));
-  const usersListDiv = document.getElementById("usersList");
-  usersListDiv.innerHTML = "";
 
-  usersSnap.forEach(docSnap => {
+// 🔍 SEARCH USERS
+window.searchUsers = async function(){
+  const searchText = document.getElementById("searchInput").value.toLowerCase();
+  const resultsDiv = document.getElementById("searchResults");
+  resultsDiv.innerHTML = "";
+
+  if(searchText.length < 2) return;
+
+  const snapshot = await getDocs(collection(db,"users"));
+
+  snapshot.forEach(async (docSnap)=>{
     const user = docSnap.data();
-    if(user.uid === currentUid) return; // skip self
 
-    const div = document.createElement("div");
-    div.classList.add("user-card");
-    div.textContent = user.username + " (" + user.email + ")";
+    if(user.uid === currentUid) return;
 
-    const btn = document.createElement("button");
-    btn.classList.add("add-btn");
-    btn.textContent = "Add Friend";
-    btn.onclick = async () => {
-      // Create friend request
-      await addDoc(collection(db, "friendRequests"), {
-        from: currentUid,
-        to: docSnap.id,
-        status: "pending"
-      });
-      btn.textContent = "Request Sent";
-      btn.disabled = true;
+    if(user.username.toLowerCase().includes(searchText)){
+      
+      // Prevent duplicate pending request
+      const existingQuery = query(
+        collection(db,"friendRequests"),
+        where("from","==",currentUid),
+        where("to","==",user.uid),
+        where("status","==","pending")
+      );
+
+      const existingSnap = await getDocs(existingQuery);
+      if(!existingSnap.empty) return;
+
+      const div = document.createElement("div");
+      div.classList.add("user-card");
+      div.innerHTML = `<span>${user.username} (${user.email})</span>`;
+
+      const btn = document.createElement("button");
+      btn.classList.add("add-btn");
+      btn.textContent = "Add Friend";
+      btn.onclick = async ()=>{
+        await addDoc(collection(db,"friendRequests"),{
+          from: currentUid,
+          to: user.uid,
+          status: "pending"
+        });
+        btn.textContent="Requested";
+        btn.disabled=true;
+      };
+
+      div.appendChild(btn);
+      resultsDiv.appendChild(div);
     }
-
-    div.appendChild(btn);
-    usersListDiv.appendChild(div);
   });
 }
 
-// Load friend requests
+
+// 📩 LOAD FRIEND REQUESTS
 async function loadFriendRequests(){
-  const q = query(collection(db, "friendRequests"), where("to", "==", currentUid), where("status", "==", "pending"));
+  const q = query(
+    collection(db,"friendRequests"),
+    where("to","==",currentUid),
+    where("status","==","pending")
+  );
+
   const snapshot = await getDocs(q);
   const requestsDiv = document.getElementById("friendRequests");
-  requestsDiv.innerHTML = "";
+  requestsDiv.innerHTML="";
 
-  snapshot.forEach(docSnap => {
+  if(snapshot.empty){
+    requestsDiv.innerHTML="No pending friend requests.";
+    return;
+  }
+
+  snapshot.forEach(async (docSnap)=>{
     const req = docSnap.data();
+
+    const userQuery = query(
+      collection(db,"users"),
+      where("uid","==",req.from)
+    );
+
+    const userSnap = await getDocs(userQuery);
+
+    let senderName="Unknown";
+    let senderEmail="";
+
+    userSnap.forEach(u=>{
+      senderName=u.data().username;
+      senderEmail=u.data().email;
+    });
+
     const div = document.createElement("div");
     div.classList.add("request-card");
-    div.textContent = req.from; // will replace with username
+    div.innerHTML=`<span>${senderName} (${senderEmail})</span>`;
 
-    const acceptBtn = document.createElement("button");
+    const acceptBtn=document.createElement("button");
     acceptBtn.classList.add("accept-btn");
-    acceptBtn.textContent = "Accept";
-    acceptBtn.onclick = async () => {
-      // Update request status
-      await updateDoc(doc(db, "friendRequests", docSnap.id), { status: "accepted" });
-      // Add to connections collection
-      await addDoc(collection(db, "connections"), { users: [req.from, currentUid] });
+    acceptBtn.textContent="Accept";
+    acceptBtn.onclick=async ()=>{
+      await updateDoc(doc(db,"friendRequests",docSnap.id),{
+        status:"accepted"
+      });
+      await addDoc(collection(db,"connections"),{
+        users:[req.from,currentUid]
+      });
       div.remove();
-    }
+    };
 
-    const declineBtn = document.createElement("button");
+    const declineBtn=document.createElement("button");
     declineBtn.classList.add("decline-btn");
-    declineBtn.textContent = "Decline";
-    declineBtn.onclick = async () => {
-      await updateDoc(doc(db, "friendRequests", docSnap.id), { status: "declined" });
+    declineBtn.textContent="Decline";
+    declineBtn.onclick=async ()=>{
+      await updateDoc(doc(db,"friendRequests",docSnap.id),{
+        status:"declined"
+      });
       div.remove();
-    }
+    };
 
     div.appendChild(acceptBtn);
     div.appendChild(declineBtn);
