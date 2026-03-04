@@ -1,34 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>REALM - Friends</title>
+  <title>REALM Friends</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body{
       margin:0;
       font-family:Arial;
-      background: linear-gradient(145deg,#0b1f3a,#102a52);
+      background:linear-gradient(145deg,#0b1f3a,#102a52);
       color:white;
       padding:20px;
     }
 
-    h2{
-      margin-top:30px;
-    }
+    h2{ margin-top:30px; }
 
     input{
       width:100%;
       padding:10px;
-      border-radius:8px;
+      border-radius:6px;
       border:none;
       margin-bottom:15px;
-      font-size:16px;
     }
 
-    .user-card, .request-card{
+    .user-card{
       background:#132f57;
-      padding:15px;
-      border-radius:10px;
+      padding:12px;
+      border-radius:8px;
       margin-bottom:10px;
       display:flex;
       justify-content:space-between;
@@ -36,56 +33,36 @@
     }
 
     button{
-      padding:6px 12px;
+      padding:6px 10px;
       border:none;
       border-radius:6px;
       cursor:pointer;
       font-weight:bold;
     }
 
-    .add-btn{
-      background:#28a745;
-      color:white;
-    }
-
-    .accept-btn{
-      background:#28a745;
-      color:white;
-      margin-left:5px;
-    }
-
-    .decline-btn{
-      background:#dc3545;
-      color:white;
-      margin-left:5px;
-    }
-
-    .back-btn{
-      margin-top:20px;
-      background:#999;
-      color:black;
-    }
+    .add-btn{ background:#1abc9c; color:white; }
+    .accept-btn{ background:#2ecc71; color:white; margin-right:5px; }
+    .decline-btn{ background:#e74c3c; color:white; }
   </style>
 </head>
 <body>
 
 <h1>Friends</h1>
 
-<input type="text" id="searchInput" placeholder="Search users by username..." oninput="searchUsers()">
+<input type="text" id="searchInput" placeholder="Search users..." oninput="searchUsers()">
 <div id="searchResults"></div>
 
 <h2>Friend Requests</h2>
-<div id="friendRequests"></div>
+<div id="requestsList"></div>
 
-<button class="back-btn" onclick="location.href='dashboard.html'">Back</button>
+<h2>Your Friends</h2>
+<div id="friendsList"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
-import { 
-  getFirestore, collection, getDocs, query, where,
-  addDoc, updateDoc, doc 
-} from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, query, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
@@ -100,45 +77,57 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUid;
+let currentUid = null;
 
-auth.onAuthStateChanged(user=>{
+onAuthStateChanged(auth, user=>{
   if(user){
     currentUid = user.uid;
-    loadFriendRequests();
+    loadRequests();
+    loadFriends();
   }else{
-    location.href="index.html";
+    window.location.href="index.html";
   }
 });
 
 
-// 🔍 SEARCH USERS
+// SEARCH USERS
 window.searchUsers = async function(){
   const searchText = document.getElementById("searchInput").value.toLowerCase();
   const resultsDiv = document.getElementById("searchResults");
   resultsDiv.innerHTML = "";
-
   if(searchText.length < 2) return;
 
-  const snapshot = await getDocs(collection(db,"users"));
+  const usersSnap = await getDocs(collection(db,"users"));
 
-  snapshot.forEach(async (docSnap)=>{
-    const user = docSnap.data();
-
-    if(user.uid === currentUid) return;
+  for(const userDoc of usersSnap.docs){
+    const user = userDoc.data();
+    if(user.uid === currentUid) continue;
 
     if(user.username.toLowerCase().includes(searchText)){
-      
-      // Prevent duplicate pending request
-      const existingQuery = query(
-        collection(db,"friendRequests"),
-        where("from","==",currentUid),
-        where("to","==",user.uid),
-        where("status","==","pending")
-      );
 
-      const existingSnap = await getDocs(existingQuery);
-      if(!existingSnap.empty) return;
+      const requestQuery1 = query(collection(db,"friendRequests"),
+        where("from","==",currentUid),
+        where("to","==",user.uid));
+
+      const requestQuery2 = query(collection(db,"friendRequests"),
+        where("from","==",user.uid),
+        where("to","==",currentUid));
+
+      const connectionQuery = query(collection(db,"connections"),
+        where("users","array-contains",currentUid));
+
+      const [snap1, snap2, connSnap] = await Promise.all([
+        getDocs(requestQuery1),
+        getDocs(requestQuery2),
+        getDocs(connectionQuery)
+      ]);
+
+      let alreadyFriends = false;
+      connSnap.forEach(docSnap=>{
+        if(docSnap.data().users.includes(user.uid)){
+          alreadyFriends = true;
+        }
+      });
 
       const div = document.createElement("div");
       div.classList.add("user-card");
@@ -146,91 +135,107 @@ window.searchUsers = async function(){
 
       const btn = document.createElement("button");
       btn.classList.add("add-btn");
-      btn.textContent = "Add Friend";
-      btn.onclick = async ()=>{
-        await addDoc(collection(db,"friendRequests"),{
-          from: currentUid,
-          to: user.uid,
-          status: "pending"
-        });
-        btn.textContent="Requested";
+
+      if(!snap1.empty || !snap2.empty){
+        btn.textContent="Request Sent";
         btn.disabled=true;
-      };
+      }
+      else if(alreadyFriends){
+        btn.textContent="Friends";
+        btn.disabled=true;
+      }
+      else{
+        btn.textContent="Add Friend";
+        btn.onclick = async ()=>{
+          await addDoc(collection(db,"friendRequests"),{
+            from:currentUid,
+            to:user.uid,
+            status:"pending"
+          });
+          btn.textContent="Requested";
+          btn.disabled=true;
+        };
+      }
 
       div.appendChild(btn);
       resultsDiv.appendChild(div);
     }
-  });
+  }
 }
 
 
-// 📩 LOAD FRIEND REQUESTS
-async function loadFriendRequests(){
-  const q = query(
-    collection(db,"friendRequests"),
+// LOAD REQUESTS
+async function loadRequests(){
+  const list = document.getElementById("requestsList");
+  list.innerHTML="";
+
+  const q = query(collection(db,"friendRequests"),
     where("to","==",currentUid),
-    where("status","==","pending")
-  );
+    where("status","==","pending"));
 
-  const snapshot = await getDocs(q);
-  const requestsDiv = document.getElementById("friendRequests");
-  requestsDiv.innerHTML="";
+  const snap = await getDocs(q);
 
-  if(snapshot.empty){
-    requestsDiv.innerHTML="No pending friend requests.";
-    return;
-  }
-
-  snapshot.forEach(async (docSnap)=>{
-    const req = docSnap.data();
-
-    const userQuery = query(
-      collection(db,"users"),
-      where("uid","==",req.from)
-    );
-
-    const userSnap = await getDocs(userQuery);
-
-    let senderName="Unknown";
-    let senderEmail="";
-
-    userSnap.forEach(u=>{
-      senderName=u.data().username;
-      senderEmail=u.data().email;
-    });
+  snap.forEach(docSnap=>{
+    const request = docSnap.data();
 
     const div = document.createElement("div");
-    div.classList.add("request-card");
-    div.innerHTML=`<span>${senderName} (${senderEmail})</span>`;
+    div.classList.add("user-card");
+    div.innerHTML=`<span>${request.from}</span>`;
 
-    const acceptBtn=document.createElement("button");
-    acceptBtn.classList.add("accept-btn");
-    acceptBtn.textContent="Accept";
-    acceptBtn.onclick=async ()=>{
-      await updateDoc(doc(db,"friendRequests",docSnap.id),{
-        status:"accepted"
-      });
+    const accept = document.createElement("button");
+    accept.textContent="Accept";
+    accept.classList.add("accept-btn");
+
+    accept.onclick=async()=>{
       await addDoc(collection(db,"connections"),{
-        users:[req.from,currentUid]
+        users:[currentUid,request.from]
       });
-      div.remove();
+
+      await deleteDoc(doc(db,"friendRequests",docSnap.id));
+      loadRequests();
+      loadFriends();
     };
 
-    const declineBtn=document.createElement("button");
-    declineBtn.classList.add("decline-btn");
-    declineBtn.textContent="Decline";
-    declineBtn.onclick=async ()=>{
-      await updateDoc(doc(db,"friendRequests",docSnap.id),{
-        status:"declined"
-      });
-      div.remove();
+    const decline = document.createElement("button");
+    decline.textContent="Decline";
+    decline.classList.add("decline-btn");
+
+    decline.onclick=async()=>{
+      await deleteDoc(doc(db,"friendRequests",docSnap.id));
+      loadRequests();
     };
 
-    div.appendChild(acceptBtn);
-    div.appendChild(declineBtn);
-    requestsDiv.appendChild(div);
+    div.appendChild(accept);
+    div.appendChild(decline);
+    list.appendChild(div);
   });
 }
+
+
+// LOAD FRIENDS
+async function loadFriends(){
+  const friendsDiv = document.getElementById("friendsList");
+  friendsDiv.innerHTML="";
+
+  const q = query(collection(db,"connections"),
+    where("users","array-contains",currentUid));
+
+  const snap = await getDocs(q);
+
+  for(const docSnap of snap.docs){
+    const usersArray = docSnap.data().users;
+    const friendUid = usersArray.find(uid=>uid!==currentUid);
+
+    const friendDoc = await getDoc(doc(db,"users",friendUid));
+    const friend = friendDoc.data();
+
+    const div = document.createElement("div");
+    div.classList.add("user-card");
+    div.innerHTML=`<span>${friend.username} (${friend.email})</span>`;
+    friendsDiv.appendChild(div);
+  }
+}
+
 </script>
 
 </body>
