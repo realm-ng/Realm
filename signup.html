@@ -1,59 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>REALM Signup</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin:0;
-      font-family:Arial;
-      background:#0b1f3a;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
-      color:white;
-    }
-    .box {
-      background:#08172b;
-      padding:30px;
-      border-radius:15px;
-      width:300px;
-    }
-    input {
-      width:100%;
-      padding:10px;
-      margin:5px 0;
-      border-radius:10px;
-      border:none;
-    }
-    button {
-      width:100%;
-      padding:10px;
-      margin-top:10px;
-      border:none;
-      border-radius:10px;
-      background:#1e90ff;
-      color:white;
-      cursor:pointer;
-    }
-  </style>
-</head>
-<body>
-
-<div class="box">
-  <h2>Sign Up</h2>
-  <input type="text" id="firstName" placeholder="First Name">
-  <input type="text" id="lastName" placeholder="Last Name">
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
-  <button onclick="signup()">Sign Up</button>
-</div>
-
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDHCo9MHaKL_yv25Et378od3c6yXU9Hnac",
@@ -68,31 +17,35 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-window.signup = async function(){
-  const firstName = document.getElementById("firstName").value;
-  const lastName = document.getElementById("lastName").value;
+window.register = async function(){
+
+  const username = document.getElementById("username").value;
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      firstName,
-      lastName,
-      email,
-      age:null,
-      state:"",
-      bio:"",
-      profilePic:"",
-      createdAt: serverTimestamp()
+  if(!username || !email || !password){
+    alert("Fill all fields");
+    return;
+  }
+
+  try{
+    const userCredential = await createUserWithEmailAndPassword(auth,email,password);
+    const user = userCredential.user;
+
+    // 🔥 THIS IS THE IMPORTANT PART
+    await setDoc(doc(db,"users",user.uid),{
+      uid:user.uid,
+      username:username,
+      email:email,
+      createdAt: new Date()
     });
-    alert("Signup successful!");
-    window.location.href = "index.html";
-  } catch(error){
+
+    alert("Account created!");
+    window.location.href="friends.html";
+
+  }catch(error){
     alert(error.message);
   }
 }
-</script>
 
-</body>
-</html>
+</script>
